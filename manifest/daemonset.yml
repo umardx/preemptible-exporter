@@ -1,0 +1,78 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    app: preemptible-exporter
+  name: preemptible-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: preemptible-exporter
+  template:
+    metadata:
+      labels:
+        app: preemptible-exporter
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: cloud.google.com/gke-preemptible
+                operator: Exists
+      containers:
+      - image: asia.gcr.io/silicon-airlock-153323/infrastructure/preemptible-exporter:v0.1.4
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: "/"
+            port: 9999
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: preemptible-exporter
+        ports:
+        - containerPort: 9999
+          hostPort: 9999
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: "/"
+            port: 9999
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources: {}
+        volumeMounts:
+        - mountPath: "/host/proc"
+          name: proc
+          readOnly: true
+        - mountPath: "/host/sys"
+          name: sys
+          readOnly: true
+      hostNetwork: true
+      hostPID: true
+      priorityClassName: high-priority
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: "/proc"
+          type: ''
+        name: proc
+      - hostPath:
+          path: "/sys"
+          type: ''
+        name: sys
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate

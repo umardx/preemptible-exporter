@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: 'true'
+  labels:
+    app: preemptible-exporter
+  name: preemptible-exporter
+  namespace: monitoring
+spec:
+  ports:
+  - name: metrics
+    port: 9999
+    protocol: TCP
+    targetPort: 9999
+  selector:
+    app: preemptible-exporter
+  sessionAffinity: None
+  type: ClusterIP
